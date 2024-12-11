@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "CryAnnotation.h"
+#include <cstdint> 
 
 // Forward declarations for TFLite C API structs
 struct TfLiteModel;

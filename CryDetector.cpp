@@ -22,7 +22,8 @@ CryDetector::~CryDetector() {
 }
 
 bool CryDetector::init_audio_input() {
-    int err = snd_pcm_open(&pcm_handle_, "default", SND_PCM_STREAM_CAPTURE, 0);
+    snd_pcm_t *pcm_handle = pcm_handle_.get();
+    int err = snd_pcm_open(&pcm_handle, "default", SND_PCM_STREAM_CAPTURE, 0);
     if (err < 0) {
         std::cerr << "Error opening PCM device: " << snd_strerror(err) << std::endl;
         return false;

@@ -24,6 +24,7 @@ bool VADSystem::has_voice() const {
     return std::any_of(vad_result_.begin(), vad_result_.end(), [](bool v){return v;});
 }
 
+
 void VADSystem::high_pass_filter(double cutoff) {
     auto taps = firwin_highpass(cutoff, sample_rate_, 101);
     signal_ = fir_filter(signal_, taps);
@@ -74,32 +75,49 @@ void VADSystem::compute_spectral_flatness() {
     int NFFT = 512;
     sf_db_.resize(num_frames_);
 
-    for (int i=0; i<num_frames_; i++) {
+    double eps = 1e-15; // a small epsilon similar to np.finfo(float).eps
+
+    for (int i = 0; i < num_frames_; i++) {
+        // Extract frame
         std::vector<double> frame(frame_length_);
-        for (int j=0; j<frame_length_; j++) {
-            frame[j] = frames_[i*frame_length_+j];
+        for (int j = 0; j < frame_length_; j++) {
+            frame[j] = frames_[i*frame_length_ + j];
         }
-        frame.resize(NFFT,0.0);
+        // Zero-pad to NFFT
+        frame.resize(NFFT, 0.0);
 
-        auto spectrum = compute_fft_magnitude(frame);
-        for (auto &val: spectrum) {
-            if(val==0.0) val = 1e-15;
+        // Compute magnitude spectrum (like mag_frames in Python)
+        std::vector<double> spectrum = compute_fft_magnitude(frame); // size = NFFT/2+1
+
+        // Replace zeros with eps to avoid log(0)
+        for (double &val : spectrum) {
+            if (val == 0.0) val = eps;
         }
 
-        double geometric_mean = 0.0;
-        for (auto val: spectrum) {
-            geometric_mean += std::log(val);
+        // Compute power spectrum: pow_frames = (1.0 / NFFT) * (mag_frames^2)
+        for (double &val : spectrum) {
+            val = (1.0 / NFFT) * (val * val);
         }
-        geometric_mean = std::exp(geometric_mean/spectrum.size());
 
-        double arithmetic_mean = 0.0;
-        for (auto val: spectrum) arithmetic_mean += val;
-        arithmetic_mean /= spectrum.size();
+        // Compute geometric mean: exp(mean(log(pow_frames + eps)))
+        double sum_log = 0.0;
+        for (double val : spectrum) {
+            sum_log += std::log(val + eps);
+        }
+        double geometric_mean = std::exp(sum_log / spectrum.size());
 
-        double sf = 10.0*std::log10(geometric_mean/(arithmetic_mean+1e-15));
+        // Compute arithmetic mean: mean(pow_frames) + eps
+        double sum = 0.0;
+        for (auto val : spectrum) {
+            sum += val;
+        }
+        double arithmetic_mean = (sum / spectrum.size()) + eps;
+
+        double sf = 10.0 * std::log10(geometric_mean / arithmetic_mean);
         sf_db_[i] = sf;
     }
 }
+
 
 void VADSystem::make_vad_decision() {
     double ENERGY_THRESHOLD = -40.0;
