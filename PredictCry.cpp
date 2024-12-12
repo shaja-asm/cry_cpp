@@ -7,46 +7,57 @@
 #include "tensorflow/lite/c/common.h"
 #include "utils.h" // For MFCC and related preprocessing
 
-static const char* MODEL_PATH = "basestation/algorithm/cry_detection/cnn_cry_detection_model_quant_shifted.tflite";
+static const char* MODEL_PATH = "/home/root/basestation/basestation/algorithm/cry_detection/cnn_cry_detection_model_quant_shifted.tflite";
 
 PredictCry::PredictCry(int num_threads, int sample_rate)
-    : sample_rate_(sample_rate), num_threads_(num_threads),
-      model_(nullptr), options_(nullptr), interpreter_(nullptr),
-      input_tensor_(nullptr), output_tensor_(nullptr),
-      input_scale_(1.0f), input_zero_point_(0), 
-      output_scale_(1.0f), output_zero_point_(0),
-      input_dtype_(0), output_dtype_(0) 
-{
+    : sample_rate_(sample_rate), num_threads_(num_threads) {
     if (!init_tflite()) {
         throw std::runtime_error("Failed to initialize TFLite interpreter");
     }
 }
 
 PredictCry::~PredictCry() {
-    if (interpreter_) TfLiteInterpreterDelete(interpreter_);
-    if (options_) TfLiteInterpreterOptionsDelete(options_);
-    if (model_) TfLiteModelDelete(model_);
+    // Smart pointers automatically delete the TFLite objects
 }
 
 bool PredictCry::init_tflite() {
-    model_ = TfLiteModelCreateFromFile(MODEL_PATH);
-    if (!model_) return false;
+    // Load the TFLite model
+    model_.reset(TfLiteModelCreateFromFile(MODEL_PATH));
+    if (!model_) {
+        std::cerr << "Failed to load TFLite model from: " << MODEL_PATH << std::endl;
+        return false;
+    }
 
-    options_ = TfLiteInterpreterOptionsCreate();
-    TfLiteInterpreterOptionsSetNumThreads(options_, num_threads_);
+    // Create interpreter options
+    options_.reset(TfLiteInterpreterOptionsCreate());
+    TfLiteInterpreterOptionsSetNumThreads(options_.get(), num_threads_);
 
-    interpreter_ = TfLiteInterpreterCreate(model_, options_);
-    if (!interpreter_) return false;
+    // Create interpreter
+    interpreter_.reset(TfLiteInterpreterCreate(model_.get(), options_.get()));
+    if (!interpreter_) {
+        std::cerr << "Failed to create TFLite interpreter." << std::endl;
+        return false;
+    }
 
-    if (TfLiteInterpreterAllocateTensors(interpreter_) != kTfLiteOk) return false;
+    // Allocate tensors
+    if (TfLiteInterpreterAllocateTensors(interpreter_.get()) != kTfLiteOk) {
+        std::cerr << "Failed to allocate TFLite tensors." << std::endl;
+        return false;
+    }
 
-    const TfLiteTensor* input_tensor_ = TfLiteInterpreterGetInputTensor(interpreter_, 0);
-    const TfLiteTensor* output_tensor_ = TfLiteInterpreterGetOutputTensor(interpreter_, 0);
-    if (!input_tensor_ || !output_tensor_) return false;
+    // Get input and output tensors
+    const TfLiteTensor* input_tensor_ = TfLiteInterpreterGetInputTensor(interpreter_.get(), 0);
+    const TfLiteTensor* output_tensor_ = TfLiteInterpreterGetOutputTensor(interpreter_.get(), 0);
+    if (!input_tensor_ || !output_tensor_) {
+        std::cerr << "Failed to get input/output tensors." << std::endl;
+        return false;
+    }
 
+    // Get tensor data types
     input_dtype_ = TfLiteTensorType(input_tensor_);
     output_dtype_ = TfLiteTensorType(output_tensor_);
 
+    // Get quantization parameters
     auto input_params = TfLiteTensorQuantizationParams(input_tensor_);
     input_scale_ = input_params.scale;
     input_zero_point_ = input_params.zero_point;
@@ -56,8 +67,7 @@ bool PredictCry::init_tflite() {
     output_zero_point_ = output_params.zero_point;
 
     // Check input dimensions match expected shape
-    // Python final shape: (1, MAX_LENGTH, NUM_MFCC, 1)
-    // MAX_LENGTH=499, NUM_MFCC=33
+    // Expected shape: [1, 499, 33, 1]
     const int MAX_LENGTH = 499;
     const int NUM_MFCC = 33;
 
@@ -74,15 +84,14 @@ bool PredictCry::init_tflite() {
         return false;
     }
 
-
     return true;
 }
 
-CryAnnotation PredictCry::get_prediction(const std::vector<int16_t> &audio) {
+CryAnnotation PredictCry::get_prediction(const std::vector<int16_t> &audio) const {
     return predict(audio);
 }
 
-CryAnnotation PredictCry::predict(const std::vector<int16_t> &audio) {
+CryAnnotation PredictCry::predict(const std::vector<int16_t> &audio) const { // Marked as const
     std::vector<float> input_data = preprocess_audio(audio);
     // input_data now has size MAX_LENGTH * NUM_MFCC
     // Model expects shape: [1, MAX_LENGTH, NUM_MFCC, 1]
@@ -120,11 +129,11 @@ CryAnnotation PredictCry::predict(const std::vector<int16_t> &audio) {
     }
 
     // Run inference
-    if (TfLiteInterpreterInvoke(interpreter_) != kTfLiteOk) {
+    if (TfLiteInterpreterInvoke(interpreter_.get()) != kTfLiteOk) {
         throw std::runtime_error("Failed to invoke TFLite interpreter");
     }
 
-    int output_byte_size = (int)TfLiteTensorByteSize(output_tensor_);
+    int output_byte_size = static_cast<int>(TfLiteTensorByteSize(output_tensor_));
     if (output_dtype_ == TF_LITE_TYPE_INT8) {
         std::vector<int8_t> output_int8(output_byte_size);
         if (TfLiteTensorCopyToBuffer(output_tensor_, output_int8.data(), output_int8.size()) != kTfLiteOk) {
@@ -144,7 +153,7 @@ CryAnnotation PredictCry::predict(const std::vector<int16_t> &audio) {
     }
 }
 
-std::vector<float> PredictCry::preprocess_audio(const std::vector<int16_t> &audio) {
+std::vector<float> PredictCry::preprocess_audio(const std::vector<int16_t> &audio) const { // Marked as const
     const int NUM_MFCC = 33;
     const int MAX_LENGTH = 499;
 
