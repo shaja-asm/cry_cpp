@@ -1,5 +1,5 @@
 #include "VADSystem.h"
-#include "utils.h" // Assumes implementation for FIR filter, FFT, window functions, etc.
+#include "utils.h"
 #include <cmath>
 #include <cstdint>
 #include <algorithm>
@@ -31,7 +31,6 @@ bool VADSystem::has_voice() const {
 
 // Applies a high-pass FIR filter to remove low-frequency noise
 void VADSystem::high_pass_filter(double cutoff) {
-    // Assumes firwin_highpass and fir_filter are implemented in utils.h
     auto taps = firwin_highpass(cutoff, sample_rate_, 101);
     signal_ = fir_filter(signal_, taps);
 }

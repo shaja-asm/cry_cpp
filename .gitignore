@@ -3,9 +3,6 @@
 # Learn more about .gitignore:
 #     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
 
-/out/
-/.vs/
-/build/
 # Node artifact files
 node_modules/
 dist/
@@ -18,25 +15,6 @@ dist/
 
 # Log files
 *.log
-*.lock
-*.suo
-*.db
-*.opendb
-*.ipch
-*.obj
-*.ilk
-*.idb
-*.tlog
-*.recipe
-*.iobj
-*.pdb
-*.ipdb
-*.vsidx
-*.db-wal
-*.db-shm
-*.opendb
-*.cmake
-*.cpp.o
 
 # Package files
 *.jar
@@ -70,5 +48,7 @@ Thumbs.db
 *.mov
 *.wmv
 
+
 tensorflow
 fftw-3.3.10
+build

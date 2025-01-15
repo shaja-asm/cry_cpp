@@ -8,8 +8,7 @@ int main() {
     CryDetector detector;
     detector.start();
 
-    // Example main loop
-    for (int i = 0; i < 3; i++) {
+    while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(10));
         CryAnnotation state = detector.get_cry_state();
         std::cout << "Current cry state: " << (int)state << std::endl;
@@ -18,3 +17,4 @@ int main() {
     detector.stop();
     return 0;
 }
+

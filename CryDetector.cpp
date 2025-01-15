@@ -119,7 +119,7 @@ CryAnnotation CryDetector::get_cry_state() const {
     return cry_state_;
 }
 
-// Capture loop: Continuously reads audio data from ALSA and processes it
+// Continuously reads audio data from ALSA and processes it
 void CryDetector::capture_loop() {
     int num_chunks = static_cast<int>(SAMPLE_RATE * SEGMENT_DURATION / PERIOD_SIZE);
     // Allocate buffer on the heap to prevent stack overflow
@@ -155,10 +155,11 @@ void CryDetector::capture_loop() {
 
 // Processes an audio segment by adding it to the history buffer
 void CryDetector::process_audio_segment(const std::vector<int16_t> &segment) {
+    // std::cout << "Entering process_audio_segment" << std::endl;
     std::lock_guard<std::mutex> lk(history_lock_);
     history_buffer_.push_back(segment);
 
-    // Ensure history does not exceed PREDICTION_DURATION
+    // Ensure history < PREDICTION_DURATION
     double total_duration = 0.0;
     for (const auto &seg : history_buffer_) {
         total_duration += static_cast<double>(seg.size()) / (SAMPLE_RATE * CHANNELS);
@@ -168,9 +169,11 @@ void CryDetector::process_audio_segment(const std::vector<int16_t> &segment) {
         history_buffer_.pop_front();
         total_duration -= static_cast<double>(front_seg.size()) / (SAMPLE_RATE * CHANNELS);
     }
+
+    // std::cout << "Exiting process_audio_segment" << std::endl;
 }
 
-// Periodically updates the cry state based on the audio history
+// Periodically updates the cry state
 void CryDetector::update_cry_state_periodically() {
     while (keep_running_) {
         std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -190,6 +193,7 @@ void CryDetector::update_cry_state_periodically() {
 
         std::vector<int16_t> selected_channel;
         double energy_db = compute_energy_db(combined, CHANNELS, selected_channel);
+        std::cout << "energy_db: " << energy_db << std::endl;
 
         if (energy_db < 0.0 || selected_channel.empty()) {
             // Error or no data
@@ -206,6 +210,7 @@ void CryDetector::update_cry_state_periodically() {
             // SILENT
             std::lock_guard<std::mutex> lk(cry_state_lock_);
             cry_state_ = CryAnnotation::SILENT;
+            std::cout << "Loud noise not detected" << std::endl;
             continue;
         }
 
@@ -214,10 +219,12 @@ void CryDetector::update_cry_state_periodically() {
             // NOT_CRY
             std::lock_guard<std::mutex> lk(cry_state_lock_);
             cry_state_ = CryAnnotation::NOT_CRY;
+            std::cout << "Voice activity not detected" << std::endl;
             continue;
         }
 
         // Run ML prediction
+        // std::cout << "Running ML prediction" << std::endl;
         CryAnnotation prediction = predictor_.get_prediction(selected_channel);
         std::lock_guard<std::mutex> lk(cry_state_lock_);
         cry_state_ = prediction;

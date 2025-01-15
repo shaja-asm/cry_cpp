@@ -16,11 +16,9 @@ public:
     CryDetector();
     ~CryDetector();
 
-    // Delete copy constructor and copy assignment operator to prevent accidental copying
     CryDetector(const CryDetector&) = delete;
     CryDetector& operator=(const CryDetector&) = delete;
 
-    // Public Methods
     void start();
     void stop();
     CryAnnotation get_cry_state() const;
@@ -33,12 +31,12 @@ private:
     bool init_audio_input();
 
     // Configuration Constants
-    static constexpr double SEGMENT_DURATION = 0.5;          // Duration of each audio segment in seconds
-    static constexpr int SAMPLE_RATE = 22050;                // Sampling rate in Hz
-    static constexpr int PERIOD_SIZE = 1024;                 // Number of frames per period
-    static constexpr double HISTORY_DURATION = 1.0;          // Duration to keep in history buffer in seconds
-    static constexpr double PREDICTION_DURATION = 5.0;       // Duration for making predictions in seconds
-    static constexpr int CHANNELS = 2;                        // Number of audio channels
+    static constexpr double SEGMENT_DURATION = 0.5;          
+    static constexpr int SAMPLE_RATE = 22050;               
+    static constexpr int PERIOD_SIZE = 1024;                
+    static constexpr double HISTORY_DURATION = 1.0;          
+    static constexpr double PREDICTION_DURATION = 5.0;       
+    static constexpr int CHANNELS = 2;                        
 
     // Atomic Flag for Thread Control
     std::atomic<bool> keep_running_;

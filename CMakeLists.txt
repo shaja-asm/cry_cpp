@@ -12,17 +12,17 @@ find_package(ALSA REQUIRED)
 set(FFTW3_INCLUDE_DIR "$ENV{HOME}/aarch64-root/usr/include")
 set(FFTW3_LIBRARY "$ENV{HOME}/aarch64-root/usr/lib/libfftw3.a")
 
-set(TFLITE_LIBRARY "$ENV{HOME}/repos/cry_cpp/libtensorflowlite_c.a")
-set(TFLITE_MAIN_LIB "$ENV{HOME}/repos/cry_cpp/libtensorflow-lite.a")
+set(TFLITE_LIBRARY "$ENV{HOME}/repos/cry_cpp_bb/cry_cpp/libtensorflowlite_c.a")
+set(TFLITE_MAIN_LIB "$ENV{HOME}/repos/cry_cpp_bb/cry_cpp/libtensorflow-lite.a")
 
 if(NOT EXISTS ${TFLITE_LIBRARY})
     message(FATAL_ERROR "TFLite library not found at ${TFLITE_LIBRARY}")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
 
 
-# Additional TFLite dependencies (adjust paths as needed)
+# Additional TFLite dependencies
 set(XNNPACK_LIB          "$ENV{HOME}/tensorflow/build/build_static/_deps/xnnpack-build/libXNNPACK.a")
 set(CPUINFO_LIB          "$ENV{HOME}/tensorflow/build/build_static/_deps/cpuinfo-build/libcpuinfo.a")
 set(PTHREADPOOL_LIB      "$ENV{HOME}/tensorflow/build/build_static/pthreadpool/libpthreadpool.a")
@@ -31,7 +31,7 @@ set(FARMHASH_LIB         "$ENV{HOME}/tensorflow/build/build_static/_deps/farmhas
 set(FFT2D_FFTSG_LIB      "$ENV{HOME}/tensorflow/build/build_static/_deps/fft2d-build/libfft2d_fftsg.a")
 set(FFT2D_FFTSG2D_LIB    "$ENV{HOME}/tensorflow/build/build_static/_deps/fft2d-build/libfft2d_fftsg2d.a")
 
-# Ruy libraries (manually listed in a group for safe resolution)
+# Ruy libraries
 set(RUY_DIR "$ENV{HOME}/tensorflow/build/build_static/_deps/ruy-build/ruy")
 set(RUY_LIBS
     ${RUY_DIR}/libruy_frontend.a
