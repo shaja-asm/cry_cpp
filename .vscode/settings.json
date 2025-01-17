@@ -63,5 +63,10 @@
         "cfenv": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
+    },
+
+    "cmake.configureSettings": {
+        "CMAKE_TOOLCHAIN_FILE": "/home/meow/repos/cry_cpp_gh/aarch64-toolchain.cmake",
     }
+
 }

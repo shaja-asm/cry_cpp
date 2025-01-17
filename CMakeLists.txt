@@ -19,9 +19,6 @@ if(NOT EXISTS ${TFLITE_LIBRARY})
     message(FATAL_ERROR "TFLite library not found at ${TFLITE_LIBRARY}")
 endif()
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
-
-
 # Additional TFLite dependencies
 set(XNNPACK_LIB          "$ENV{HOME}/tensorflow/build/build_static/_deps/xnnpack-build/libXNNPACK.a")
 set(CPUINFO_LIB          "$ENV{HOME}/tensorflow/build/build_static/_deps/cpuinfo-build/libcpuinfo.a")
@@ -74,9 +71,8 @@ include_directories(
     ${ALSA_INCLUDE_DIR}
 )
 
-# Source files
-add_executable(cry_detection
-    main.cpp
+#Create a stataic library
+add_library(cry_detection_lib STATIC
     CryDetector.cpp
     PredictCry.cpp
     VADSystem.cpp
@@ -88,8 +84,8 @@ add_executable(cry_detection
     tensorflow/lite/c/jni/jni_utils.cc
 )
 
-# Link libraries
-target_link_libraries(cry_detection
+# Link the library with dependencies
+target_link_libraries(cry_detection_lib
     ${ALSA_LIBRARIES}
     ${FFTW3_LIBRARY}
     ${TFLITE_LIBRARY}
@@ -107,4 +103,14 @@ target_link_libraries(cry_detection
     pthread
     dl
     m
+)
+
+# Create executable
+add_executable(cry_detection
+    main.cpp
+)
+
+# Link the executable with dependencies
+target_link_libraries(cry_detection
+    cry_detection_lib
 )
